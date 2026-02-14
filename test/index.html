@@ -340,6 +340,11 @@
         height: 40px;
         font-size: 24px;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        line-height: 1;
     }
 
     .edit-modal {
@@ -515,6 +520,25 @@
             <input type="checkbox" id="vibrate" checked>
             <label for="vibrate">バイブレーション</label>
         </div>
+
+        <div class="setting-item">
+            <label>画質</label>
+            <select id="quality" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px;">
+                <option value="0.95">最高画質 (大きいファイル)</option>
+                <option value="0.9" selected>高画質 (推奨)</option>
+                <option value="0.8">標準画質</option>
+                <option value="0.7">低画質 (小さいファイル)</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
+            <label>解像度</label>
+            <select id="resolution" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px;">
+                <option value="4k">4K (3840×2160)</option>
+                <option value="fhd" selected>フルHD (1920×1080)</option>
+                <option value="hd">HD (1280×720)</option>
+            </select>
+        </div>
     </div>
 
     <div class="scanned-box">
@@ -591,8 +615,30 @@
 
     async function startCamera() {
         try {
+            const resolution = document.getElementById('resolution').value;
+            let width, height;
+            
+            switch(resolution) {
+                case '4k':
+                    width = 3840;
+                    height = 2160;
+                    break;
+                case 'fhd':
+                    width = 1920;
+                    height = 1080;
+                    break;
+                case 'hd':
+                    width = 1280;
+                    height = 720;
+                    break;
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: width },
+                    height: { ideal: height }
+                }
             });
             video.srcObject = stream;
             document.getElementById('startBtn').disabled = true;
@@ -637,7 +683,8 @@
             applyPerspective();
         }
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const quality = parseFloat(document.getElementById('quality').value);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
         scans.push(dataUrl);
         updateGrid();
         updateCount();
@@ -1035,7 +1082,11 @@
     }
 
     function endCrop() {
-        if (!cropMode || !cropStart || !cropEnd) return;
+        if (!cropMode || !cropStart || !cropEnd) {
+            cropStart = null;
+            cropEnd = null;
+            return;
+        }
         
         const x = Math.min(cropStart.x, cropEnd.x);
         const y = Math.min(cropStart.y, cropEnd.y);
@@ -1045,6 +1096,9 @@
         if (w < 10 || h < 10) {
             cropStart = null;
             cropEnd = null;
+            // Redraw without overlay
+            const state = editHistory[historyIndex];
+            editCtx.putImageData(state.data, 0, 0);
             return;
         }
 
@@ -1058,6 +1112,7 @@
         cropEnd = null;
         cropMode = false;
         document.getElementById('cropBtn').classList.remove('active');
+        editCanvas.style.cursor = 'default';
     }
 
     function rotate(deg) {
@@ -1135,7 +1190,8 @@
     }
 
     function saveEdit() {
-        scans[currentEditIndex] = editCanvas.toDataURL('image/jpeg', 0.9);
+        const quality = parseFloat(document.getElementById('quality').value);
+        scans[currentEditIndex] = editCanvas.toDataURL('image/jpeg', quality);
         updateGrid();
         closeEditModal();
         showMessage('編集を保存しました', 'success');
