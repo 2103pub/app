@@ -59,6 +59,32 @@
         display: block;
     }
 
+    .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .grid-line {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .grid-line.vertical {
+        width: 1px;
+        height: 100%;
+        top: 0;
+    }
+
+    .grid-line.horizontal {
+        width: 100%;
+        height: 1px;
+        left: 0;
+    }
+
     #canvas {
         display: none;
     }
@@ -430,6 +456,12 @@
     <div class="camera-box">
         <div class="video-container">
             <video id="video" autoplay playsinline></video>
+            <div class="grid-overlay">
+                <div class="grid-line vertical" style="left: 33.33%"></div>
+                <div class="grid-line vertical" style="left: 66.66%"></div>
+                <div class="grid-line horizontal" style="top: 33.33%"></div>
+                <div class="grid-line horizontal" style="top: 66.66%"></div>
+            </div>
             <div id="flash" class="flash"></div>
         </div>
         <canvas id="canvas"></canvas>
@@ -467,6 +499,11 @@
         <div class="checkbox-item">
             <input type="checkbox" id="glare" checked>
             <label for="glare">反射軽減</label>
+        </div>
+
+        <div class="checkbox-item">
+            <input type="checkbox" id="perspective" checked>
+            <label for="perspective">歪み補正</label>
         </div>
 
         <div class="checkbox-item">
@@ -595,6 +632,11 @@
 
         ctx.putImageData(imageData, 0, 0);
 
+        // Apply perspective correction
+        if (document.getElementById('perspective').checked) {
+            applyPerspective();
+        }
+
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
         scans.push(dataUrl);
         updateGrid();
@@ -670,6 +712,33 @@
         }
 
         return new ImageData(output, w, h);
+    }
+
+    function applyPerspective() {
+        // Crop edges to remove potential distortion
+        const margin = 0.08; // 8% margin
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        const cropW = w * (1 - margin * 2);
+        const cropH = h * (1 - margin * 2);
+        const cropX = w * margin;
+        const cropY = h * margin;
+
+        const temp = document.createElement('canvas');
+        temp.width = cropW;
+        temp.height = cropH;
+        const tempCtx = temp.getContext('2d');
+        
+        tempCtx.drawImage(
+            canvas,
+            cropX, cropY, cropW, cropH,
+            0, 0, cropW, cropH
+        );
+
+        canvas.width = cropW;
+        canvas.height = cropH;
+        ctx.drawImage(temp, 0, 0);
     }
 
     function toGrayscale(imageData) {
@@ -844,8 +913,30 @@
             editCtx.drawImage(img, 0, 0);
             saveHistory();
             document.getElementById('editModal').classList.add('active');
+            
+            // Setup crop listeners after canvas is ready
+            setupCropListeners();
         };
         img.src = scans[index];
+    }
+
+    function setupCropListeners() {
+        editCanvas.addEventListener('mousedown', startCrop);
+        editCanvas.addEventListener('mousemove', drawCrop);
+        editCanvas.addEventListener('mouseup', endCrop);
+        editCanvas.addEventListener('touchstart', handleTouchStart);
+        editCanvas.addEventListener('touchmove', handleTouchMove);
+        editCanvas.addEventListener('touchend', endCrop);
+    }
+
+    function handleTouchStart(e) {
+        e.preventDefault();
+        startCrop(e.touches[0]);
+    }
+
+    function handleTouchMove(e) {
+        e.preventDefault();
+        drawCrop(e.touches[0]);
     }
 
     function closeEditModal() {
@@ -906,15 +997,10 @@
         } else {
             btn.classList.remove('active');
             editCanvas.style.cursor = 'default';
+            cropStart = null;
+            cropEnd = null;
         }
     }
-
-    editCanvas?.addEventListener('mousedown', startCrop);
-    editCanvas?.addEventListener('mousemove', drawCrop);
-    editCanvas?.addEventListener('mouseup', endCrop);
-    editCanvas?.addEventListener('touchstart', (e) => startCrop(e.touches[0]));
-    editCanvas?.addEventListener('touchmove', (e) => { e.preventDefault(); drawCrop(e.touches[0]); });
-    editCanvas?.addEventListener('touchend', endCrop);
 
     function startCrop(e) {
         if (!cropMode) return;
