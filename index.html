@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="light dark">
     <title>ドキュメントスキャナー Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -21,17 +22,42 @@
         --success: #00cc66;
         --danger: #ff3366;
         --warning: #ffaa00;
-        --bg: #0a0e1a;
-        --card-bg: #141822;
-        --text: #ffffff;
-        --text-secondary: #8892a6;
-        --border: #1f2937;
+    }
+
+    /* ライトモード */
+    @media (prefers-color-scheme: light) {
+        :root {
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --border: #d2d2d7;
+            --input-bg: #f5f5f7;
+        }
+    }
+
+    /* ダークモード */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #000000;
+            --card-bg: #1c1c1e;
+            --text: #ffffff;
+            --text-secondary: #98989d;
+            --border: #38383a;
+            --input-bg: #2c2c2e;
+        }
+    }
+
+    /* 強制ダークモード（ブラウザ設定に関わらず） */
+    html {
+        background: var(--bg);
+        color-scheme: light dark;
     }
 
     body {
-        font-family: 'Noto Sans JP', sans-serif;
-        background: var(--bg);
-        color: var(--text);
+        font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--bg) !important;
+        color: var(--text) !important;
         min-height: 100vh;
         overflow-x: hidden;
         touch-action: pan-y;
@@ -95,7 +121,7 @@
         border-radius: 8px;
         overflow: hidden;
         margin-bottom: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     #video {
@@ -178,13 +204,13 @@
 
     .btn-primary {
         background: linear-gradient(135deg, var(--primary), #0080ff);
-        color: white;
+        color: white !important;
         box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
     }
 
     .btn-success {
         background: linear-gradient(135deg, var(--success), #00e673);
-        color: white;
+        color: white !important;
         box-shadow: 0 4px 12px rgba(0, 204, 102, 0.3);
         grid-column: 1 / -1;
         padding: 18px;
@@ -193,13 +219,13 @@
 
     .btn-danger {
         background: linear-gradient(135deg, var(--danger), #ff5580);
-        color: white;
+        color: white !important;
         box-shadow: 0 4px 12px rgba(255, 51, 102, 0.3);
     }
 
     .btn-secondary {
-        background: #2a3142;
-        color: white;
+        background: var(--input-bg);
+        color: var(--text) !important;
         border: 1px solid var(--border);
     }
 
@@ -222,6 +248,7 @@
         font-size: 16px;
         font-weight: 700;
         letter-spacing: -0.3px;
+        color: var(--text);
     }
 
     .setting-group {
@@ -231,7 +258,7 @@
     .setting-group label {
         display: block;
         margin-bottom: 8px;
-        color: var(--text-secondary);
+        color: var(--text-secondary) !important;
         font-size: 12px;
         font-weight: 600;
         text-transform: uppercase;
@@ -242,7 +269,7 @@
         width: 100%;
         height: 6px;
         border-radius: 3px;
-        background: #1f2937;
+        background: var(--border);
         outline: none;
         -webkit-appearance: none;
         margin-bottom: 6px;
@@ -282,14 +309,14 @@
         gap: 10px;
         margin-bottom: 10px;
         padding: 12px;
-        background: #1a1f2e;
+        background: var(--input-bg);
         border-radius: 8px;
         cursor: pointer;
         transition: background 0.2s;
+        border: 1px solid var(--border);
     }
 
     .checkbox-group:active {
-        background: #222836;
         transform: scale(0.98);
     }
 
@@ -303,10 +330,10 @@
     .checkbox-group label {
         margin: 0 !important;
         cursor: pointer;
-        text-transform: none;
-        color: var(--text);
-        font-weight: 500;
-        font-size: 14px;
+        text-transform: none !important;
+        color: var(--text) !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
     }
 
     .scanned-images {
@@ -321,6 +348,7 @@
         font-size: 16px;
         font-weight: 700;
         letter-spacing: -0.3px;
+        color: var(--text);
     }
 
     .image-grid {
@@ -337,7 +365,7 @@
         border: 2px solid var(--border);
         cursor: pointer;
         transition: all 0.2s;
-        background: #1a1f2e;
+        background: var(--input-bg);
     }
 
     .scanned-item:active {
@@ -362,7 +390,7 @@
     .action-btn {
         background: rgba(0, 0, 0, 0.85);
         backdrop-filter: blur(10px);
-        color: white;
+        color: white !important;
         border: none;
         border-radius: 50%;
         width: 28px;
@@ -383,7 +411,7 @@
 
     .continuous-mode-indicator {
         background: linear-gradient(135deg, var(--success), #00e673);
-        color: white;
+        color: white !important;
         padding: 10px 16px;
         border-radius: 8px;
         font-size: 13px;
@@ -454,12 +482,13 @@
     .edit-header h2 {
         font-size: 18px;
         font-weight: 700;
+        color: var(--text);
     }
 
     .close-btn {
-        background: none;
-        border: none;
-        color: var(--text);
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        color: var(--text) !important;
         font-size: 28px;
         cursor: pointer;
         width: 36px;
@@ -472,7 +501,6 @@
     }
 
     .close-btn:active {
-        background: var(--border);
         transform: scale(0.9);
     }
 
@@ -496,13 +524,6 @@
         touch-action: none;
     }
 
-    .crop-overlay {
-        position: absolute;
-        border: 2px dashed var(--primary);
-        background: rgba(0, 102, 255, 0.1);
-        pointer-events: none;
-    }
-
     .edit-tools {
         display: flex;
         flex-direction: column;
@@ -524,10 +545,10 @@
 
     .tool-btn {
         padding: 10px 14px;
-        background: #2a3142;
+        background: var(--input-bg);
         border: 1px solid var(--border);
         border-radius: 6px;
-        color: white;
+        color: var(--text) !important;
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
@@ -537,13 +558,13 @@
     }
 
     .tool-btn:active {
-        background: #343d52;
         transform: scale(0.95);
     }
 
     .tool-btn.active {
         background: var(--primary);
         border-color: var(--primary);
+        color: white !important;
     }
 
     .tool-btn:disabled {
@@ -571,13 +592,13 @@
     }
 
     .status-success {
-        background: rgba(0, 204, 102, 0.2);
+        background: rgba(0, 204, 102, 0.15);
         color: var(--success);
         border: 1px solid var(--success);
     }
 
     .status-error {
-        background: rgba(255, 51, 102, 0.2);
+        background: rgba(255, 51, 102, 0.15);
         color: var(--danger);
         border: 1px solid var(--danger);
     }
@@ -611,6 +632,12 @@
         max-height: 85vh;
         border-radius: 8px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 強制スタイル適用 */
+    body, html {
+        background-color: var(--bg) !important;
+        color: var(--text) !important;
     }
 </style>
 ```
@@ -757,8 +784,6 @@
     let cropStart = null;
     let cropEnd = null;
     let currentRotation = 0;
-    
-    // Undo/Redo用
     let editHistory = [];
     let historyIndex = -1;
 
@@ -794,7 +819,6 @@
             });
         });
 
-        // タッチイベント対応
         editCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         editCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
         editCanvas.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -889,12 +913,10 @@
     }
 
     function captureImage() {
-        // フラッシュエフェクト
         const flash = document.getElementById('flashOverlay');
         flash.classList.add('active');
         setTimeout(() => flash.classList.remove('active'), 150);
 
-        // バイブレーション（強化）
         if (document.getElementById('hapticFeedback').checked && navigator.vibrate) {
             navigator.vibrate([30, 10, 30]);
         }
@@ -1135,7 +1157,6 @@
         document.getElementById('scanCount').textContent = scannedImages.length;
     }
 
-    // 編集モーダル
     function openEditModal(index) {
         currentEditIndex = index;
         currentRotation = 0;
@@ -1159,28 +1180,19 @@
         document.getElementById('cropBtn').classList.remove('active');
     }
 
-    // Undo/Redo機能
     function saveToHistory() {
         const imageData = editCtx.getImageData(0, 0, editCanvas.width, editCanvas.height);
-        
-        // 現在の位置より後ろの履歴を削除
         editHistory = editHistory.slice(0, historyIndex + 1);
-        
-        // 新しい状態を追加
         editHistory.push({
             data: imageData,
             width: editCanvas.width,
             height: editCanvas.height
         });
-        
         historyIndex++;
-        
-        // 履歴が20を超えたら古いものを削除
         if (editHistory.length > 20) {
             editHistory.shift();
             historyIndex--;
         }
-        
         updateUndoRedoButtons();
     }
 
@@ -1211,7 +1223,6 @@
         document.getElementById('redoBtn').disabled = historyIndex >= editHistory.length - 1;
     }
 
-    // タッチイベント処理
     let touchStartPos = null;
 
     function handleTouchStart(e) {
@@ -1315,7 +1326,7 @@
         const w = Math.abs(cropEnd.x - cropStart.x);
         const h = Math.abs(cropEnd.y - cropStart.y);
 
-        if (w < 10 || h < 10) return; // 小さすぎるクロップは無視
+        if (w < 10 || h < 10) return;
 
         const croppedData = editCtx.getImageData(x, y, w, h);
         editCanvas.width = w;
