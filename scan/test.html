@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>スキャナー Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+```
+    body {
+        font-family: 'Noto Sans JP', sans-serif;
+        background: #000 !important;
+        color: #fff !important;
+        min-height: 100vh;
+        padding: 12px;
+    }
+    
+    header {
+        background: #1c1c1e;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #38383a;
+        margin-bottom: 12px;
+    }
+    
+    h1 {
+        font-size: 20px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #0066ff, #00cc66);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+    }
+    
+    .subtitle { color: #98989d; font-size: 12px; }
+    
+    .camera-section {
+        background: #1c1c1e;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #38383a;
+        margin-bottom: 12px;
+    }
+    
+    .video-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    
+    #video { width: 100%; display: block; }
+    #canvas, #editCanvas { display: none; }
+    
+    .corner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+    
+    .flash-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+    }
+    
+    .flash-overlay.active { opacity: 0.9; }
+    
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    button {
+        padding: 14px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: 'Noto Sans JP', sans-serif;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    button:active { transform: scale(0.95); }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #0066ff, #0080ff);
+        color: white;
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #00cc66, #00e673);
+        color: white;
+        grid-column: 1 / -1;
+        padding: 18px;
+        font-size: 16px;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #ff3366, #ff5580);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #2c2c2e;
+        color: white;
+        border: 1px solid #38383a;
+    }
+    
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    .settings-panel {
+        background: #1c1c1e;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #38383a;
+        margin-bottom: 12px;
+    }
+    
+    .settings-panel h3 { margin-bottom: 16px; font-size: 16px; color: #fff; }
+    
+    .setting-group { margin-bottom: 20px; }
+    
+    .setting-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #98989d;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    input[type="range"] {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: #38383a;
+        outline: none;
+        -webkit-appearance: none;
+        margin-bottom: 6px;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #0066ff;
+        cursor: pointer;
+    }
+    
+    .value-display {
+        text-align: right;
+        color: #0066ff;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 12px;
+        background: #2c2c2e;
+        border-radius: 8px;
+        border: 1px solid #38383a;
+    }
+    
+    input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        accent-color: #0066ff;
+    }
+    
+    .checkbox-group label {
+        margin: 0 !important;
+        cursor: pointer;
+        text-transform: none !important;
+        color: #fff !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+    }
+    
+    .scanned-images {
+        background: #1c1c1e;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #38383a;
+    }
+    
+    .scanned-images h3 { margin-bottom: 16px; font-size: 16px; color: #fff; }
+    
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    
+    .scanned-item {
+        position: relative;
+        aspect-ratio: 3/4;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #38383a;
+        cursor: pointer;
+        background: #2c2c2e;
+    }
+    
+    .scanned-item img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .item-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 4px;
+    }
+    
+    .action-btn {
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .continuous-mode-indicator {
+        background: linear-gradient(135deg, #00cc66, #00e673);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .pulse {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: pulse-dot 1.5s infinite;
+    }
+    
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+    
+    .edit-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 2000;
+        padding: 12px;
+    }
+    
+    .edit-modal.active { display: flex; align-items: center; justify-content: center; }
+    
+    .edit-content {
+        width: 100%;
+        height: 100%;
+        background: #1c1c1e;
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .edit-header h2 { font-size: 18px; color: #fff; }
+    
+    .close-btn {
+        background: #2c2c2e;
+        border: 1px solid #38383a;
+        color: #fff;
+        font-size: 28px;
+        cursor: pointer;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+    
+    .edit-canvas-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 300px;
+    }
+    
+    #editCanvas {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        touch-action: none;
+    }
+    
+    .edit-tools {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #38383a;
+    }
+    
+    .tool-row {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+    }
+    
+    .tool-row::-webkit-scrollbar { display: none; }
+    
+    .tool-btn {
+        padding: 10px 14px;
+        background: #2c2c2e;
+        border: 1px solid #38383a;
+        border-radius: 6px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .tool-btn.active {
+        background: #0066ff;
+        border-color: #0066ff;
+    }
+    
+    .tool-btn:disabled { opacity: 0.3; }
+    
+    .status-message {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .status-success {
+        background: rgba(0, 204, 102, 0.15);
+        color: #00cc66;
+        border: 1px solid #00cc66;
+    }
+    
+    .status-error {
+        background: rgba(255, 51, 102, 0.15);
+        color: #ff3366;
+        border: 1px solid #ff3366;
+    }
+    
+    .preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+        padding: 12px;
+    }
+    
+    .preview-modal.active { display: flex; align-items: center; justify-content: center; }
+    
+    .preview-content img {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 8px;
+    }
+</style>
+```
+
+</head>
+<body>
+    <header>
+        <h1>📸 スキャナー Pro</h1>
+        <p class="subtitle">高品質スキャン・編集・一括保存</p>
+    </header>
+
+```
+<div id="statusMessage"></div>
+
+<div class="camera-section">
+    <div class="video-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="cornerCanvas" class="corner-overlay"></canvas>
+        <div id="flashOverlay" class="flash-overlay"></div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <div id="continuousIndicator" style="display: none;" class="continuous-mode-indicator">
+        <span class="pulse"></span>
+        連続撮影モード
+    </div>
+
+    <div class="controls">
+        <button id="startCamera" class="btn-primary">📷 カメラ起動</button>
+        <button id="capture" class="btn-success" disabled>📸 撮影</button>
+        <button id="toggleContinuous" class="btn-secondary" disabled>🔄 連続撮影</button>
+        <button id="batchSave" class="btn-primary" disabled>💾 一括保存</button>
+        <button id="exportPDF" class="btn-primary" disabled>📄 PDF出力</button>
+        <button id="clearAll" class="btn-danger" disabled>🗑️ すべて削除</button>
+    </div>
+</div>
+
+<div class="settings-panel">
+    <h3>⚙️ 設定</h3>
+    
+    <div class="setting-group">
+        <label>明るさ</label>
+        <input type="range" id="brightness" min="-50" max="50" value="0">
+        <div class="value-display"><span id="brightnessValue">0</span></div>
+    </div>
+
+    <div class="setting-group">
+        <label>コントラスト</label>
+        <input type="range" id="contrast" min="0" max="200" value="100">
+        <div class="value-display"><span id="contrastValue">100</span>%</div>
+    </div>
+
+    <div class="setting-group">
+        <label>シャープネス</label>
+        <input type="range" id="sharpness" min="0" max="100" value="30">
+        <div class="value-display"><span id="sharpnessValue">30</span></div>
+    </div>
+
+    <div class="setting-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="autoEdge" checked>
+            <label for="autoEdge">自動エッジ検出</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="glareReduction" checked>
+            <label for="glareReduction">反射軽減</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="grayscale">
+            <label for="grayscale">グレースケール</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="hapticFeedback" checked>
+            <label for="hapticFeedback">バイブレーション</label>
+        </div>
+    </div>
+
+    <div class="setting-group">
+        <label>連続撮影間隔</label>
+        <input type="range" id="continuousInterval" min="1" max="5" value="2" step="0.5">
+        <div class="value-display"><span id="intervalValue">2</span>秒</div>
+    </div>
+</div>
+
+<div class="scanned-images">
+    <h3>📋 スキャン済み (<span id="scanCount">0</span>)</h3>
+    <div id="imageGrid" class="image-grid"></div>
+</div>
+
+<div id="editModal" class="edit-modal">
+    <div class="edit-content">
+        <div class="edit-header">
+            <h2>✏️ 編集</h2>
+            <button class="close-btn" onclick="closeEditModal()">×</button>
+        </div>
+        
+        <div class="edit-canvas-container">
+            <canvas id="editCanvas"></canvas>
+        </div>
+
+        <div class="edit-tools">
+            <div class="tool-row">
+                <button class="tool-btn" id="undoBtn" onclick="undoEdit()" disabled>↶ 戻る</button>
+                <button class="tool-btn" id="redoBtn" onclick="redoEdit()" disabled>↷ 進む</button>
+                <button class="tool-btn" id="cropBtn" onclick="enableCropMode()">✂️ トリミング</button>
+                <button class="tool-btn" onclick="rotateImage(90)">↻ 右回転</button>
+                <button class="tool-btn" onclick="rotateImage(-90)">↺ 左回転</button>
+            </div>
+            <div class="tool-row">
+                <button class="tool-btn" onclick="applyFilter('grayscale')">⬛ グレー</button>
+                <button class="tool-btn" onclick="applyFilter('blackwhite')">◼️ 白黒</button>
+                <button class="tool-btn" onclick="applyFilter('sepia')">🟤 セピア</button>
+                <button class="tool-btn" onclick="applyFilter('invert')">🔄 反転</button>
+                <button class="tool-btn" onclick="resetEdit()">🔄 リセット</button>
+            </div>
+            <div class="tool-row">
+                <button class="btn-success" style="flex: 1;" onclick="saveEdit()">💾 保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="previewModal" class="preview-modal">
+    <div class="preview-content">
+        <button class="close-btn" style="position: absolute; top: -50px; right: 0;" onclick="closePreview()">×</button>
+        <img id="previewImage" src="" alt="Preview">
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+```
+
+let video,canvas,ctx,cornerCanvas,cornerCtx,editCanvas,editCtx,stream=null,scannedImages=[],continuousMode=!1,continuousInterval=null,currentEditIndex=-1,cropMode=!1,cropStart=null,cropEnd=null,currentRotation=0,editHistory=[],historyIndex=-1;document.addEventListener(“DOMContentLoaded”,()=>{video=document.getElementById(“video”),canvas=document.getElementById(“canvas”),ctx=canvas.getContext(“2d”),cornerCanvas=document.getElementById(“cornerCanvas”),cornerCtx=cornerCanvas.getContext(“2d”),editCanvas=document.getElementById(“editCanvas”),editCtx=editCanvas.getContext(“2d”),setupEventListeners(),updateScanCount()});function setupEventListeners(){document.getElementById(“startCamera”).addEventListener(“click”,startCamera),document.getElementById(“capture”).addEventListener(“click”,captureImage),document.getElementById(“toggleContinuous”).addEventListener(“click”,toggleContinuousMode),document.getElementById(“batchSave”).addEventListener(“click”,batchSaveImages),document.getElementById(“exportPDF”).addEventListener(“click”,exportToPDF),document.getElementById(“clearAll”).addEventListener(“click”,clearAllScans),[“brightness”,“contrast”,“sharpness”,“continuousInterval”].forEach(e=>{document.getElementById(e).addEventListener(“input”,t=>{const a=e+“Value”;let n=t.target.value;“contrast”===e&&(n+=”%”),“continuousInterval”===e&&(n+=“秒”),document.getElementById(a).textContent=n})}),editCanvas.addEventListener(“touchstart”,handleTouchStart,{passive:!1}),editCanvas.addEventListener(“touchmove”,handleTouchMove,{passive:!1}),editCanvas.addEventListener(“touchend”,handleTouchEnd,{passive:!1}),editCanvas.addEventListener(“mousedown”,handleMouseDown),editCanvas.addEventListener(“mousemove”,handleMouseMove),editCanvas.addEventListener(“mouseup”,handleMouseUp),video.addEventListener(“play”,()=>{cornerCanvas.width=video.videoWidth,cornerCanvas.height=video.videoHeight,detectEdges()})}async function startCamera(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:“environment”,width:{ideal:1920},height:{ideal:1080}}}),video.srcObject=stream,document.getElementById(“startCamera”).disabled=!0,document.getElementById(“capture”).disabled=!1,document.getElementById(“toggleContinuous”).disabled=!1,showStatus(“カメラを起動しました ✨”,“success”)}catch(e){showStatus(“カメラへのアクセスに失敗しました”,“error”),console.error(“Error accessing camera:”,e)}}function detectEdges(){if(!document.getElementById(“autoEdge”).checked||video.paused||video.ended)return void requestAnimationFrame(detectEdges);const e=document.createElement(“canvas”);e.width=video.videoWidth,e.height=video.videoHeight;const t=e.getContext(“2d”);t.drawImage(video,0,0);const a=t.getImageData(0,0,e.width,e.height),n=findDocumentCorners(a);cornerCtx.clearRect(0,0,cornerCanvas.width,cornerCanvas.height),n&&drawCorners(n),requestAnimationFrame(detectEdges)}function findDocumentCorners(e){const t=e.width,a=e.height;return{topLeft:{x:.1*t,y:.1*a},topRight:{x:.9*t,y:.1*a},bottomRight:{x:.9*t,y:.9*a},bottomLeft:{x:.1*t,y:.9*a}}}function drawCorners(e){cornerCtx.strokeStyle=”#00cc66”,cornerCtx.lineWidth=3,cornerCtx.setLineDash([10,5]),cornerCtx.beginPath(),cornerCtx.moveTo(e.topLeft.x,e.topLeft.y),cornerCtx.lineTo(e.topRight.x,e.topRight.y),cornerCtx.lineTo(e.bottomRight.x,e.bottomRight.y),cornerCtx.lineTo(e.bottomLeft.x,e.bottomLeft.y),cornerCtx.closePath(),cornerCtx.stroke(),cornerCtx.setLineDash([]),cornerCtx.fillStyle=”#00cc66”,[e.topLeft,e.topRight,e.bottomRight,e.bottomLeft].forEach(e=>{cornerCtx.beginPath(),cornerCtx.arc(e.x,e.y,8,0,2*Math.PI),cornerCtx.fill()})}function captureImage(){const e=document.getElementById(“flashOverlay”);e.classList.add(“active”),setTimeout(()=>e.classList.remove(“active”),150),document.getElementById(“hapticFeedback”).checked&&navigator.vibrate&&navigator.vibrate([30,10,30]),canvas.width=video.videoWidth,canvas.height=video.videoHeight,ctx.drawImage(video,0,0);let t=ctx.getImageData(0,0,canvas.width,canvas.height);document.getElementById(“glareReduction”).checked&&(t=reduceGlare(t)),t=adjustBrightnessContrast(t),document.getElementById(“sharpness”).value>0&&(t=applySharpen(t)),document.getElementById(“grayscale”).checked&&(t=convertToGrayscale(t)),ctx.putImageData(t,0,0),document.getElementById(“autoEdge”).checked&&applyPerspectiveCorrection();const a=canvas.toDataURL(“image/jpeg”,.95);scannedImages.push(a),updateImageGrid(),updateScanCount(),document.getElementById(“batchSave”).disabled=!1,document.getElementById(“exportPDF”).disabled=!1,document.getElementById(“clearAll”).disabled=!1,showStatus(“📸 撮影しました！”,“success”)}function reduceGlare(e){const t=e.data;for(let e=0;e<t.length;e+=4){const a=t[e],n=t[e+1],d=t[e+2];if((a+n+d)/3>200){const c=200/((a+n+d)/3);t[e]=Math.min(255,a*c),t[e+1]=Math.min(255,n*c),t[e+2]=Math.min(255,d*c)}}return e}function adjustBrightnessContrast(e){const t=e.data,a=parseInt(document.getElementById(“brightness”).value),n=parseInt(document.getElementById(“contrast”).value)/100;for(let e=0;e<t.length;e+=4)t[e]=clamp((t[e]-128)*n+128+a),t[e+1]=clamp((t[e+1]-128)*n+128+a),t[e+2]=clamp((t[e+2]-128)*n+128+a);return e}function applySharpen(e){const t=parseInt(document.getElementById(“sharpness”).value)/100,a=e.data,n=e.width,d=e.height,c=new Uint8ClampedArray(a),r=[0,-t,0,-t,1+4*t,-t,0,-t,0];for(let e=1;e<d-1;e++)for(let t=1;t<n-1;t++)for(let i=0;i<3;i++){let s=0;for(let c=-1;c<=1;c++)for(let o=-1;o<=1;o++){const l=((e+c)*n+(t+o))*4+i;s+=a[l]*r[3*(c+1)+(o+1)]}c[(e*n+t)*4+i]=clamp(s)}return new ImageData(c,n,d)}function convertToGrayscale(e){const t=e.data;for(let e=0;e<t.length;e+=4){const a=.299*t[e]+.587*t[e+1]+.114*t[e+2];t[e]=t[e+1]=t[e+2]=a}return e}function applyPerspectiveCorrection(){const e=document.createElement(“canvas”),t=canvas.width,a=canvas.height;e.width=.8*t,e.height=.8*a;e.getContext(“2d”).drawImage(canvas,.1*t,.1*a,.8*t,.8*a,0,0,e.width,e.height);canvas.width=e.width,canvas.height=e.height,ctx.drawImage(e,0,0)}function toggleContinuousMode(){continuousMode=!continuousMode;const e=document.getElementById(“continuousIndicator”),t=document.getElementById(“toggleContinuous”);continuousMode?(e.style.display=“inline-flex”,t.textContent=“⏸ 停止”,t.classList.remove(“btn-secondary”),t.classList.add(“btn-danger”),startContinuousCapture()):(e.style.display=“none”,t.textContent=“🔄 連続撮影”,t.classList.remove(“btn-danger”),t.classList.add(“btn-secondary”),stopContinuousCapture())}function startContinuousCapture(){const e=1e3*parseFloat(document.getElementById(“continuousInterval”).value);continuousInterval=setInterval(()=>{captureImage()},e)}function stopContinuousCapture(){continuousInterval&&(clearInterval(continuousInterval),continuousInterval=null)}function updateImageGrid(){const e=document.getElementById(“imageGrid”);e.innerHTML=””,scannedImages.forEach((t,a)=>{const n=document.createElement(“div”);n.className=“scanned-item”,n.onclick=()=>showPreview(t);const d=document.createElement(“img”);d.src=t;const c=document.createElement(“div”);c.className=“item-actions”;const r=document.createElement(“button”);r.className=“action-btn”,r.innerHTML=“✏️”,r.onclick=e=>{e.stopPropagation(),openEditModal(a)};const i=document.createElement(“button”);i.className=“action-btn”,i.innerHTML=“×”,i.onclick=e=>{e.stopPropagation(),removeImage(a)},c.appendChild(r),c.appendChild(i),n.appendChild(d),n.appendChild(c),e.appendChild(n)})}function removeImage(e){scannedImages.splice(e,1),updateImageGrid(),updateScanCount(),0===scannedImages.length&&(document.getElementById(“batchSave”).disabled=!0,document.getElementById(“exportPDF”).disabled=!0,document.getElementById(“clearAll”).disabled=!0)}function clearAllScans(){confirm(“すべてのスキャンを削除しますか?”)&&(scannedImages=[],updateImageGrid(),updateScanCount(),document.getElementById(“batchSave”).disabled=!0,document.getElementById(“exportPDF”).disabled=!0,document.getElementById(“clearAll”).disabled=!0,showStatus(“🗑️ すべて削除しました”,“success”))}function updateScanCount(){document.getElementById(“scanCount”).textContent=scannedImages.length}function openEditModal(e){currentEditIndex=e,currentRotation=0,editHistory=[],historyIndex=-1;const t=new Image;t.onload=()=>{editCanvas.width=t.width,editCanvas.height=t.height,editCtx.drawImage(t,0,0),saveToHistory(),document.getElementById(“editModal”).classList.add(“active”)},t.src=scannedImages[e]}function closeEditModal(){document.getElementById(“editModal”).classList.remove(“active”),cropMode=!1,document.getElementById(“cropBtn”).classList.remove(“active”)}function saveToHistory(){const e=editCtx.getImageData(0,0,editCanvas.width,editCanvas.height);editHistory=editHistory.slice(0,historyIndex+1),editHistory.push({data:e,width:editCanvas.width,height:editCanvas.height}),historyIndex++,editHistory.length>20&&(editHistory.shift(),historyIndex–),updateUndoRedoButtons()}function undoEdit(){if(historyIndex>0){historyIndex–;const e=editHistory[historyIndex];editCanvas.width=e.width,editCanvas.height=e.height,editCtx.putImageData(e.data,0,0),updateUndoRedoButtons()}}function redoEdit(){if(historyIndex<editHistory.length-1){historyIndex++;const e=editHistory[historyIndex];editCanvas.width=e.width,editCanvas.height=e.height,editCtx.putImageData(e.data,0,0),updateUndoRedoButtons()}}function updateUndoRedoButtons(){document.getElementById(“undoBtn”).disabled=historyIndex<=0,document.getElementById(“redoBtn”).disabled=historyIndex>=editHistory.length-1}let touchStartPos=null;function handleTouchStart(e){if(e.preventDefault(),!cropMode)return;const t=e.touches[0],a=editCanvas.getBoundingClientRect();cropStart={x:(t.clientX-a.left)*(editCanvas.width/a.width),y:(t.clientY-a.top)*(editCanvas.height/a.height)},touchStartPos=cropStart}function handleTouchMove(e){if(e.preventDefault(),!cropMode||!cropStart)return;const t=e.touches[0],a=editCanvas.getBoundingClientRect();cropEnd={x:(t.clientX-a.left)*(editCanvas.width/a.width),y:(t.clientY-a.top)*(editCanvas.height/a.height)},drawCropOverlay()}function handleTouchEnd(e){e.preventDefault(),cropMode&&cropStart&&cropEnd&&(applyCrop(),cropStart=null,cropEnd=null,cropMode=!1,document.getElementById(“cropBtn”).classList.remove(“active”),touchStartPos=null)}function handleMouseDown(e){if(!cropMode)return;const t=editCanvas.getBoundingClientRect();cropStart={x:(e.clientX-t.left)*(editCanvas.width/t.width),y:(e.clientY-t.top)*(editCanvas.height/t.height)}}function handleMouseMove(e){if(!cropMode||!cropStart)return;const t=editCanvas.getBoundingClientRect();cropEnd={x:(e.clientX-t.left)*(editCanvas.width/t.width),y:(e.clientY-t.top)*(editCanvas.height/t.height)},drawCropOverlay()}function handleMouseUp(e){cropMode&&cropStart&&cropEnd&&(applyCrop(),cropStart=null,cropEnd=null,cropMode=!1,document.getElementById(“cropBtn”).classList.remove(“active”))}function enableCropMode(){cropMode=!cropMode;const e=document.getElementById(“cropBtn”);cropMode?(e.classList.add(“active”),editCanvas.style.cursor=“crosshair”):(e.classList.remove(“active”),editCanvas.style.cursor=“default”,cropStart=null,cropEnd=null)}function drawCropOverlay(){const e=editHistory[historyIndex];if(editCtx.putImageData(e.data,0,0),cropStart&&cropEnd){const e=Math.min(cropStart.x,cropEnd.x),t=Math.min(cropStart.y,cropEnd.y),a=Math.abs(cropEnd.x-cropStart.x),n=Math.abs(cropEnd.y-cropStart.y);editCtx.strokeStyle=”#0066ff”,editCtx.lineWidth=3,editCtx.setLineDash([8,8]),editCtx.strokeRect(e,t,a,n),editCtx.setLineDash([])}}function applyCrop(){const e=Math.min(cropStart.x,cropEnd.x),t=Math.min(cropStart.y,cropEnd.y),a=Math.abs(cropEnd.x-cropStart.x),n=Math.abs(cropEnd.y-cropStart.y);if(a<10||n<10)return;const d=editCtx.getImageData(e,t,a,n);editCanvas.width=a,editCanvas.height=n,editCtx.putImageData(d,0,0),saveToHistory()}function rotateImage(e){const t=document.createElement(“canvas”),a=t.getContext(“2d”);90===Math.abs(e)?(t.width=editCanvas.height,t.height=editCanvas.width):(t.width=editCanvas.width,t.height=editCanvas.height),a.translate(t.width/2,t.height/2),a.rotate(e*Math.PI/180),a.drawImage(editCanvas,-editCanvas.width/2,-editCanvas.height/2),editCanvas.width=t.width,editCanvas.height=t.height,editCtx.drawImage(t,0,0),saveToHistory()}function applyFilter(e){const t=editCtx.getImageData(0,0,editCanvas.width,editCanvas.height),a=t.data;switch(e){case”grayscale”:for(let e=0;e<a.length;e+=4){const t=.299*a[e]+.587*a[e+1]+.114*a[e+2];a[e]=a[e+1]=a[e+2]=t}break;case”blackwhite”:for(let e=0;e<a.length;e+=4){const t=.299*a[e]+.587*a[e+1]+.114*a[e+2]>128?255:0;a[e]=a[e+1]=a[e+2]=t}break;case”sepia”:for(let e=0;e<a.length;e+=4){const t=a[e],n=a[e+1],d=a[e+2];a[e]=Math.min(255,.393*t+.769*n+.189*d),a[e+1]=Math.min(255,.349*t+.686*n+.168*d),a[e+2]=Math.min(255,.272*t+.534*n+.131*d)}break;case”invert”:for(let e=0;e<a.length;e+=4)a[e]=255-a[e],a[e+1]=255-a[e+1],a[e+2]=255-a[e+2]}editCtx.putImageData(t,0,0),saveToHistory()}function resetEdit(){const e=new Image;e.onload=()=>{editCanvas.width=e.width,editCanvas.height=e.height,editCtx.drawImage(e,0,0),editHistory=[],historyIndex=-1,saveToHistory()},e.src=scannedImages[currentEditIndex]}function saveEdit(){scannedImages[currentEditIndex]=editCanvas.toDataURL(“image/jpeg”,.95),updateImageGrid(),closeEditModal(),showStatus(“✅ 編集を保存しました”,“success”),navigator.vibrate&&navigator.vibrate([40,20,40])}async function batchSaveImages(){const e=new JSZip,t=new Date().toISOString().split(“T”)[0];scannedImages.forEach((t,a)=>{const n=t.split(”,”)[1];e.file(`scan_${String(a+1).padStart(3,"0")}.jpg`,n,{base64:!0})});const a=await e.generateAsync({type:“blob”}),n=URL.createObjectURL(a),d=document.createElement(“a”);d.href=n,d.download=`scans_${t}.zip`,document.body.appendChild(d),d.click(),document.body.removeChild(d),URL.revokeObjectURL(n),showStatus(“💾 一括保存しました！”,“success”)}function showPreview(e){document.getElementById(“previewImage”).src=e,document.getElementById(“previewModal”).classList.add(“active”)}function closePreview(){document.getElementById(“previewModal”).classList.remove(“active”)}async function exportToPDF(){const{jsPDF:e}=window.jspdf,t=new e({orientation:“portrait”,unit:“mm”,format:“a4”});for(let e=0;e<scannedImages.length;e++){e>0&&t.addPage();const a=new Image;a.src=scannedImages[e],await new Promise(e=>{a.onload=()=>{const n=t.internal.pageSize.getWidth(),d=t.internal.pageSize.getHeight(),c=a.width/a.height,r=n/d;let i,s;c>r?(i=n-20,s=i/c):(s=d-20,i=s*c);const o=(n-i)/2,l=(d-s)/2;t.addImage(scannedImages[e],“JPEG”,o,l,i,s),e()}})}const a=new Date().toISOString().split(“T”)[0];t.save(`scan_${a}.pdf`),showStatus(“📄 PDFを出力しました”,“success”)}function showStatus(e,t){const a=document.getElementById(“statusMessage”);a.className=`status-message status-${t}`,a.textContent=e,a.style.display=“block”,setTimeout(()=>{a.style.display=“none”},3e3)}function clamp(e){return Math.max(0,Math.min(255,e))}document.getElementById(“previewModal”).addEventListener(“click”,e=>{“previewModal”===e.target.id&&closePreview()}),document.getElementById(“editModal”).addEventListener(“click”,e=>{“editModal”===e.target.id&&closeEditModal()});
+</script>
+
+</body>
+</html>
