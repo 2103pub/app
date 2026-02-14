@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドキュメントスキャナー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f5f5f5;
+        min-height: 100vh;
+    }
+
+    .app-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    h1 {
+        color: #333;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .camera-section {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    #video {
+        width: 100%;
+        display: block;
+    }
+
+    #canvas {
+        display: none;
+    }
+
+    .corner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: #007aff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0051d5;
+    }
+
+    .btn-secondary {
+        background: #e0e0e0;
+        color: #333;
+    }
+
+    .btn-secondary:hover {
+        background: #d0d0d0;
+    }
+
+    .btn-success {
+        background: #34c759;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #2ba84a;
+    }
+
+    .btn-danger {
+        background: #ff3b30;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #d32f2f;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .settings-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .settings-panel h3 {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 18px;
+    }
+
+    .setting-group {
+        margin-bottom: 20px;
+    }
+
+    .setting-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #666;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .value-display {
+        text-align: right;
+        color: #007aff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .scanned-images {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-top: 20px;
+    }
+
+    .scanned-images h3 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+
+    .scanned-item {
+        position: relative;
+        aspect-ratio: 3/4;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #e0e0e0;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .scanned-item:hover {
+        transform: scale(1.05);
+        border-color: #007aff;
+    }
+
+    .scanned-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(255, 59, 48, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .continuous-mode-indicator {
+        background: #34c759;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .pulse {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .preview-modal.active {
+        display: flex;
+    }
+
+    .preview-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+    }
+
+    .preview-content img {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+    }
+
+    .close-preview {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: white;
+        color: #333;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .status-message {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+
+    .status-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>📸 ドキュメントスキャナー</h1>
+            <p style="color: #666; margin-top: 5px;">書類や名刺を高品質でスキャン</p>
+        </header>
+
+```
+    <div id="statusMessage"></div>
+
+    <div class="main-content">
+        <div class="camera-section">
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="cornerCanvas" class="corner-overlay"></canvas>
+            </div>
+            <canvas id="canvas"></canvas>
+
+            <div id="continuousIndicator" style="display: none;" class="continuous-mode-indicator">
+                <span class="pulse"></span>
+                連続撮影モード
+            </div>
+
+            <div class="controls">
+                <button id="startCamera" class="btn-primary">📷 カメラ起動</button>
+                <button id="capture" class="btn-success" disabled>📸 撮影</button>
+                <button id="toggleContinuous" class="btn-secondary" disabled>🔄 連続撮影</button>
+                <button id="exportPDF" class="btn-primary" disabled>📄 PDF出力</button>
+                <button id="clearAll" class="btn-danger" disabled>🗑️ すべて削除</button>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <h3>⚙️ 設定</h3>
+            
+            <div class="setting-group">
+                <label>明るさ</label>
+                <input type="range" id="brightness" min="-50" max="50" value="0">
+                <div class="value-display"><span id="brightnessValue">0</span></div>
+            </div>
+
+            <div class="setting-group">
+                <label>コントラスト</label>
+                <input type="range" id="contrast" min="0" max="200" value="100">
+                <div class="value-display"><span id="contrastValue">100</span>%</div>
+            </div>
+
+            <div class="setting-group">
+                <label>シャープネス</label>
+                <input type="range" id="sharpness" min="0" max="100" value="30">
+                <div class="value-display"><span id="sharpnessValue">30</span></div>
+            </div>
+
+            <div class="setting-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="autoEdge" checked>
+                    <label for="autoEdge" style="margin: 0;">自動エッジ検出</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="glareReduction" checked>
+                    <label for="glareReduction" style="margin: 0;">反射軽減</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="grayscale">
+                    <label for="grayscale" style="margin: 0;">グレースケール</label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>連続撮影間隔</label>
+                <input type="range" id="continuousInterval" min="1" max="5" value="2" step="0.5">
+                <div class="value-display"><span id="intervalValue">2</span>秒</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scanned-images">
+        <h3>📋 スキャン済み (<span id="scanCount">0</span>)</h3>
+        <div id="imageGrid" class="image-grid"></div>
+    </div>
+</div>
+
+<div id="previewModal" class="preview-modal">
+    <div class="preview-content">
+        <button class="close-preview" onclick="closePreview()">×</button>
+        <img id="previewImage" src="" alt="Preview">
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    let video, canvas, ctx, cornerCanvas, cornerCtx;
+    let stream = null;
+    let scannedImages = [];
+    let continuousMode = false;
+    let continuousInterval = null;
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', () => {
+        video = document.getElementById('video');
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        cornerCanvas = document.getElementById('cornerCanvas');
+        cornerCtx = cornerCanvas.getContext('2d');
+
+        setupEventListeners();
+        updateScanCount();
+    });
+
+    function setupEventListeners() {
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('capture').addEventListener('click', captureImage);
+        document.getElementById('toggleContinuous').addEventListener('click', toggleContinuousMode);
+        document.getElementById('exportPDF').addEventListener('click', exportToPDF);
+        document.getElementById('clearAll').addEventListener('click', clearAllScans);
+
+        // 設定の変更を監視
+        ['brightness', 'contrast', 'sharpness', 'continuousInterval'].forEach(id => {
+            const input = document.getElementById(id);
+            input.addEventListener('input', (e) => {
+                const valueId = id + 'Value';
+                let value = e.target.value;
+                if (id === 'contrast') value += '%';
+                if (id === 'continuousInterval') value += '秒';
+                document.getElementById(valueId).textContent = value;
+            });
+        });
+
+        // ビデオが再生されたら、エッジ検出を開始
+        video.addEventListener('play', () => {
+            cornerCanvas.width = video.videoWidth;
+            cornerCanvas.height = video.videoHeight;
+            detectEdges();
+        });
+    }
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                } 
+            });
+            video.srcObject = stream;
+            
+            document.getElementById('startCamera').disabled = true;
+            document.getElementById('capture').disabled = false;
+            document.getElementById('toggleContinuous').disabled = false;
+            
+            showStatus('カメラを起動しました', 'success');
+        } catch (err) {
+            showStatus('カメラへのアクセスに失敗しました', 'error');
+            console.error('Error accessing camera:', err);
+        }
+    }
+
+    function detectEdges() {
+        if (!document.getElementById('autoEdge').checked || video.paused || video.ended) {
+            requestAnimationFrame(detectEdges);
+            return;
+        }
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = video.videoWidth;
+        tempCanvas.height = video.videoHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(video, 0, 0);
+
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const corners = findDocumentCorners(imageData);
+
+        // コーナーを描画
+        cornerCtx.clearRect(0, 0, cornerCanvas.width, cornerCanvas.height);
+        if (corners) {
+            drawCorners(corners);
+        }
+
+        requestAnimationFrame(detectEdges);
+    }
+
+    function findDocumentCorners(imageData) {
+        // 簡易的なエッジ検出（実際のアプリではより高度なアルゴリズムを使用）
+        const w = imageData.width;
+        const h = imageData.height;
+        const data = imageData.data;
+
+        // グレースケール変換とエッジ検出
+        const edges = new Uint8Array(w * h);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const idx = (y * w + x) * 4;
+                const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                
+                const gx = (
+                    -data[((y-1)*w + x-1)*4] - 2*data[(y*w + x-1)*4] - data[((y+1)*w + x-1)*4] +
+                    data[((y-1)*w + x+1)*4] + 2*data[(y*w + x+1)*4] + data[((y+1)*w + x+1)*4]
+                ) / 8;
+                
+                const gy = (
+                    -data[((y-1)*w + x-1)*4] - 2*data[((y-1)*w + x)*4] - data[((y-1)*w + x+1)*4] +
+                    data[((y+1)*w + x-1)*4] + 2*data[((y+1)*w + x)*4] + data[((y+1)*w + x+1)*4]
+                ) / 8;
+                
+                edges[y * w + x] = Math.sqrt(gx * gx + gy * gy);
+            }
+        }
+
+        // デフォルトのコーナー（画面の80%の領域）
+        const margin = 0.1;
+        return {
+            topLeft: { x: w * margin, y: h * margin },
+            topRight: { x: w * (1 - margin), y: h * margin },
+            bottomRight: { x: w * (1 - margin), y: h * (1 - margin) },
+            bottomLeft: { x: w * margin, y: h * (1 - margin) }
+        };
+    }
+
+    function drawCorners(corners) {
+        cornerCtx.strokeStyle = '#34c759';
+        cornerCtx.lineWidth = 3;
+        cornerCtx.setLineDash([10, 5]);
+
+        cornerCtx.beginPath();
+        cornerCtx.moveTo(corners.topLeft.x, corners.topLeft.y);
+        cornerCtx.lineTo(corners.topRight.x, corners.topRight.y);
+        cornerCtx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+        cornerCtx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+        cornerCtx.closePath();
+        cornerCtx.stroke();
+
+        // コーナーポイントを描画
+        cornerCtx.setLineDash([]);
+        cornerCtx.fillStyle = '#34c759';
+        [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft].forEach(point => {
+            cornerCtx.beginPath();
+            cornerCtx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+            cornerCtx.fill();
+        });
+    }
+
+    function captureImage() {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        // 画像処理を適用
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        if (document.getElementById('glareReduction').checked) {
+            imageData = reduceGlare(imageData);
+        }
+
+        imageData = adjustBrightnessContrast(imageData);
+        
+        if (document.getElementById('sharpness').value > 0) {
+            imageData = applySharpen(imageData);
+        }
+
+        if (document.getElementById('grayscale').checked) {
+            imageData = convertToGrayscale(imageData);
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+
+        // 歪み補正（透視変換）
+        if (document.getElementById('autoEdge').checked) {
+            applyPerspectiveCorrection();
+        }
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        scannedImages.push(dataUrl);
+        updateImageGrid();
+        updateScanCount();
+        
+        document.getElementById('exportPDF').disabled = false;
+        document.getElementById('clearAll').disabled = false;
+
+        showStatus('撮影しました', 'success');
+    }
+
+    function reduceGlare(imageData) {
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            // 高輝度ピクセルを検出して調整
+            const brightness = (r + g + b) / 3;
+            if (brightness > 200) {
+                const factor = 200 / brightness;
+                data[i] = Math.min(255, r * factor);
+                data[i + 1] = Math.min(255, g * factor);
+                data[i + 2] = Math.min(255, b * factor);
+            }
+        }
+        
+        return imageData;
+    }
+
+    function adjustBrightnessContrast(imageData) {
+        const data = imageData.data;
+        const brightness = parseInt(document.getElementById('brightness').value);
+        const contrast = parseInt(document.getElementById('contrast').value) / 100;
+
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = clamp((data[i] - 128) * contrast + 128 + brightness);
+            data[i + 1] = clamp((data[i + 1] - 128) * contrast + 128 + brightness);
+            data[i + 2] = clamp((data[i + 2] - 128) * contrast + 128 + brightness);
+        }
+
+        return imageData;
+    }
+
+    function applySharpen(imageData) {
+        const sharpness = parseInt(document.getElementById('sharpness').value) / 100;
+        const data = imageData.data;
+        const w = imageData.width;
+        const h = imageData.height;
+        const output = new Uint8ClampedArray(data);
+
+        // シャープニングカーネル
+        const kernel = [
+            0, -sharpness, 0,
+            -sharpness, 1 + 4 * sharpness, -sharpness,
+            0, -sharpness, 0
+        ];
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                for (let c = 0; c < 3; c++) {
+                    let sum = 0;
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * w + (x + kx)) * 4 + c;
+                            sum += data[idx] * kernel[(ky + 1) * 3 + (kx + 1)];
+                        }
+                    }
+                    output[(y * w + x) * 4 + c] = clamp(sum);
+                }
+            }
+        }
+
+        return new ImageData(output, w, h);
+    }
+
+    function convertToGrayscale(imageData) {
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            data[i] = data[i + 1] = data[i + 2] = gray;
+        }
+        
+        return imageData;
+    }
+
+    function applyPerspectiveCorrection() {
+        // 簡易的な台形補正
+        // 実際の実装ではより高度なアルゴリズムが必要
+        const correctedCanvas = document.createElement('canvas');
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        correctedCanvas.width = w * 0.8;
+        correctedCanvas.height = h * 0.8;
+        
+        const correctedCtx = correctedCanvas.getContext('2d');
+        correctedCtx.drawImage(
+            canvas,
+            w * 0.1, h * 0.1, w * 0.8, h * 0.8,
+            0, 0, correctedCanvas.width, correctedCanvas.height
+        );
+        
+        canvas.width = correctedCanvas.width;
+        canvas.height = correctedCanvas.height;
+        ctx.drawImage(correctedCanvas, 0, 0);
+    }
+
+    function toggleContinuousMode() {
+        continuousMode = !continuousMode;
+        const indicator = document.getElementById('continuousIndicator');
+        const btn = document.getElementById('toggleContinuous');
+
+        if (continuousMode) {
+            indicator.style.display = 'inline-flex';
+            btn.textContent = '⏸ 停止';
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-danger');
+            startContinuousCapture();
+        } else {
+            indicator.style.display = 'none';
+            btn.textContent = '🔄 連続撮影';
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-secondary');
+            stopContinuousCapture();
+        }
+    }
+
+    function startContinuousCapture() {
+        const interval = parseFloat(document.getElementById('continuousInterval').value) * 1000;
+        
+        continuousInterval = setInterval(() => {
+            captureImage();
+        }, interval);
+    }
+
+    function stopContinuousCapture() {
+        if (continuousInterval) {
+            clearInterval(continuousInterval);
+            continuousInterval = null;
+        }
+    }
+
+    function updateImageGrid() {
+        const grid = document.getElementById('imageGrid');
+        grid.innerHTML = '';
+
+        scannedImages.forEach((dataUrl, index) => {
+            const item = document.createElement('div');
+            item.className = 'scanned-item';
+            item.onclick = () => showPreview(dataUrl);
+
+            const img = document.createElement('img');
+            img.src = dataUrl;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeImage(index);
+            };
+
+            item.appendChild(img);
+            item.appendChild(removeBtn);
+            grid.appendChild(item);
+        });
+    }
+
+    function removeImage(index) {
+        scannedImages.splice(index, 1);
+        updateImageGrid();
+        updateScanCount();
+
+        if (scannedImages.length === 0) {
+            document.getElementById('exportPDF').disabled = true;
+            document.getElementById('clearAll').disabled = true;
+        }
+    }
+
+    function clearAllScans() {
+        if (confirm('すべてのスキャンを削除しますか？')) {
+            scannedImages = [];
+            updateImageGrid();
+            updateScanCount();
+            document.getElementById('exportPDF').disabled = true;
+            document.getElementById('clearAll').disabled = true;
+            showStatus('すべて削除しました', 'success');
+        }
+    }
+
+    function updateScanCount() {
+        document.getElementById('scanCount').textContent = scannedImages.length;
+    }
+
+    function showPreview(dataUrl) {
+        document.getElementById('previewImage').src = dataUrl;
+        document.getElementById('previewModal').classList.add('active');
+    }
+
+    function closePreview() {
+        document.getElementById('previewModal').classList.remove('active');
+    }
+
+    async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        for (let i = 0; i < scannedImages.length; i++) {
+            if (i > 0) {
+                pdf.addPage();
+            }
+
+            const img = new Image();
+            img.src = scannedImages[i];
+            
+            await new Promise(resolve => {
+                img.onload = () => {
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const imgRatio = img.width / img.height;
+                    const pageRatio = pageWidth / pageHeight;
+
+                    let finalWidth, finalHeight;
+                    if (imgRatio > pageRatio) {
+                        finalWidth = pageWidth - 20;
+                        finalHeight = finalWidth / imgRatio;
+                    } else {
+                        finalHeight = pageHeight - 20;
+                        finalWidth = finalHeight * imgRatio;
+                    }
+
+                    const x = (pageWidth - finalWidth) / 2;
+                    const y = (pageHeight - finalHeight) / 2;
+
+                    pdf.addImage(scannedImages[i], 'JPEG', x, y, finalWidth, finalHeight);
+                    resolve();
+                };
+            });
+        }
+
+        const timestamp = new Date().toISOString().split('T')[0];
+        pdf.save(`scan_${timestamp}.pdf`);
+        showStatus('PDFを出力しました', 'success');
+    }
+
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('statusMessage');
+        statusDiv.className = `status-message status-${type}`;
+        statusDiv.textContent = message;
+        statusDiv.style.display = 'block';
+
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    function clamp(value) {
+        return Math.max(0, Math.min(255, value));
+    }
+
+    // モーダルの外側をクリックで閉じる
+    document.getElementById('previewModal').addEventListener('click', (e) => {
+        if (e.target.id === 'previewModal') {
+            closePreview();
+        }
+    });
+</script>
+```
+
+</body>
+</html>
