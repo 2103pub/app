@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ドキュメントスキャナー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        padding: 16px;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 24px;
+        margin-bottom: 8px;
+        color: #000;
+    }
+
+    .subtitle {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .camera-box {
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 16px;
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    #video {
+        width: 100%;
+        display: block;
+    }
+
+    #canvas {
+        display: none;
+    }
+
+    .flash {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s;
+    }
+
+    .flash.active {
+        opacity: 0.8;
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    button {
+        padding: 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+
+    button:active {
+        transform: scale(0.98);
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-primary {
+        background: #007aff;
+        color: white;
+    }
+
+    .btn-success {
+        background: #34c759;
+        color: white;
+        grid-column: 1 / -1;
+        font-size: 18px;
+        padding: 20px;
+    }
+
+    .btn-danger {
+        background: #ff3b30;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #e8e8e8;
+        color: #333;
+    }
+
+    .settings-box {
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 16px;
+    }
+
+    .settings-box h3 {
+        font-size: 18px;
+        margin-bottom: 16px;
+        color: #000;
+    }
+
+    .setting-item {
+        margin-bottom: 20px;
+    }
+
+    .setting-item label {
+        display: block;
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: #ddd;
+        outline: none;
+        -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #007aff;
+        cursor: pointer;
+    }
+
+    .value {
+        text-align: right;
+        color: #007aff;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .checkbox-item label {
+        margin: 0 !important;
+        cursor: pointer;
+        flex: 1;
+        color: #000 !important;
+        font-weight: 500 !important;
+    }
+
+    .scanned-box {
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .scanned-box h3 {
+        font-size: 18px;
+        margin-bottom: 16px;
+        color: #000;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .scan-item {
+        position: relative;
+        aspect-ratio: 3/4;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        background: #f5f5f5;
+    }
+
+    .scan-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .scan-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 4px;
+    }
+
+    .action-btn {
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .message {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-weight: 600;
+    }
+
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal img {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: white;
+        color: #000;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        cursor: pointer;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <h1>📸 ドキュメントスキャナー</h1>
+        <p class="subtitle">高品質スキャン・編集・一括保存</p>
+
+```
+    <div id="message"></div>
+
+    <div class="camera-box">
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <div id="flash" class="flash"></div>
+        </div>
+        <canvas id="canvas"></canvas>
+
+        <div class="buttons">
+            <button id="startBtn" class="btn-primary">📷 カメラ起動</button>
+            <button id="captureBtn" class="btn-success" disabled>📸 撮影</button>
+            <button id="saveBtn" class="btn-primary" disabled>💾 一括保存</button>
+            <button id="pdfBtn" class="btn-primary" disabled>📄 PDF出力</button>
+            <button id="clearBtn" class="btn-danger" disabled>🗑️ すべて削除</button>
+        </div>
+    </div>
+
+    <div class="settings-box">
+        <h3>⚙️ 設定</h3>
+        
+        <div class="setting-item">
+            <label>明るさ</label>
+            <input type="range" id="brightness" min="-50" max="50" value="0">
+            <div class="value"><span id="brightnessVal">0</span></div>
+        </div>
+
+        <div class="setting-item">
+            <label>コントラスト</label>
+            <input type="range" id="contrast" min="0" max="200" value="100">
+            <div class="value"><span id="contrastVal">100</span>%</div>
+        </div>
+
+        <div class="setting-item">
+            <label>シャープネス</label>
+            <input type="range" id="sharpness" min="0" max="100" value="30">
+            <div class="value"><span id="sharpnessVal">30</span></div>
+        </div>
+
+        <div class="checkbox-item">
+            <input type="checkbox" id="glare" checked>
+            <label for="glare">反射軽減</label>
+        </div>
+
+        <div class="checkbox-item">
+            <input type="checkbox" id="grayscale">
+            <label for="grayscale">グレースケール</label>
+        </div>
+
+        <div class="checkbox-item">
+            <input type="checkbox" id="vibrate" checked>
+            <label for="vibrate">バイブレーション</label>
+        </div>
+    </div>
+
+    <div class="scanned-box">
+        <h3>📋 スキャン済み (<span id="count">0</span>)</h3>
+        <div id="grid" class="grid"></div>
+    </div>
+</div>
+
+<div id="modal" class="modal">
+    <button class="close-modal" onclick="closeModal()">×</button>
+    <img id="modalImg" src="" alt="Preview">
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+    let video, canvas, ctx;
+    let scans = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        video = document.getElementById('video');
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+
+        document.getElementById('startBtn').addEventListener('click', startCamera);
+        document.getElementById('captureBtn').addEventListener('click', capture);
+        document.getElementById('saveBtn').addEventListener('click', saveAll);
+        document.getElementById('pdfBtn').addEventListener('click', exportPDF);
+        document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+        ['brightness', 'contrast', 'sharpness'].forEach(id => {
+            document.getElementById(id).addEventListener('input', e => {
+                let val = e.target.value;
+                if (id === 'contrast') val += '%';
+                document.getElementById(id + 'Val').textContent = val;
+            });
+        });
+
+        updateCount();
+    });
+
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('captureBtn').disabled = false;
+            showMessage('カメラを起動しました', 'success');
+        } catch (err) {
+            showMessage('カメラへのアクセスに失敗しました', 'error');
+        }
+    }
+
+    function capture() {
+        const flash = document.getElementById('flash');
+        flash.classList.add('active');
+        setTimeout(() => flash.classList.remove('active'), 100);
+
+        if (document.getElementById('vibrate').checked && navigator.vibrate) {
+            navigator.vibrate(30);
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if (document.getElementById('glare').checked) {
+            imageData = reduceGlare(imageData);
+        }
+
+        imageData = adjustBrightness(imageData);
+        imageData = adjustContrast(imageData);
+        imageData = applySharpen(imageData);
+
+        if (document.getElementById('grayscale').checked) {
+            imageData = toGrayscale(imageData);
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        scans.push(dataUrl);
+        updateGrid();
+        updateCount();
+
+        document.getElementById('saveBtn').disabled = false;
+        document.getElementById('pdfBtn').disabled = false;
+        document.getElementById('clearBtn').disabled = false;
+
+        showMessage('撮影しました', 'success');
+    }
+
+    function reduceGlare(imageData) {
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+            if (brightness > 200) {
+                const factor = 200 / brightness;
+                data[i] *= factor;
+                data[i+1] *= factor;
+                data[i+2] *= factor;
+            }
+        }
+        return imageData;
+    }
+
+    function adjustBrightness(imageData) {
+        const data = imageData.data;
+        const val = parseInt(document.getElementById('brightness').value);
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.max(0, Math.min(255, data[i] + val));
+            data[i+1] = Math.max(0, Math.min(255, data[i+1] + val));
+            data[i+2] = Math.max(0, Math.min(255, data[i+2] + val));
+        }
+        return imageData;
+    }
+
+    function adjustContrast(imageData) {
+        const data = imageData.data;
+        const val = parseInt(document.getElementById('contrast').value) / 100;
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.max(0, Math.min(255, (data[i] - 128) * val + 128));
+            data[i+1] = Math.max(0, Math.min(255, (data[i+1] - 128) * val + 128));
+            data[i+2] = Math.max(0, Math.min(255, (data[i+2] - 128) * val + 128));
+        }
+        return imageData;
+    }
+
+    function applySharpen(imageData) {
+        const val = parseInt(document.getElementById('sharpness').value);
+        if (val === 0) return imageData;
+        
+        const data = imageData.data;
+        const w = imageData.width;
+        const h = imageData.height;
+        const output = new Uint8ClampedArray(data);
+        const amount = val / 100;
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                for (let c = 0; c < 3; c++) {
+                    const idx = (y * w + x) * 4 + c;
+                    const top = ((y-1) * w + x) * 4 + c;
+                    const bottom = ((y+1) * w + x) * 4 + c;
+                    const left = (y * w + (x-1)) * 4 + c;
+                    const right = (y * w + (x+1)) * 4 + c;
+                    
+                    const sharp = data[idx] * (1 + 4 * amount) - 
+                                (data[top] + data[bottom] + data[left] + data[right]) * amount;
+                    output[idx] = Math.max(0, Math.min(255, sharp));
+                }
+            }
+        }
+
+        return new ImageData(output, w, h);
+    }
+
+    function toGrayscale(imageData) {
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+            data[i] = data[i+1] = data[i+2] = gray;
+        }
+        return imageData;
+    }
+
+    function updateGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        scans.forEach((url, i) => {
+            const item = document.createElement('div');
+            item.className = 'scan-item';
+            item.onclick = () => showModal(url);
+
+            const img = document.createElement('img');
+            img.src = url;
+
+            const actions = document.createElement('div');
+            actions.className = 'scan-actions';
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'action-btn';
+            delBtn.innerHTML = '×';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                scans.splice(i, 1);
+                updateGrid();
+                updateCount();
+                if (scans.length === 0) {
+                    document.getElementById('saveBtn').disabled = true;
+                    document.getElementById('pdfBtn').disabled = true;
+                    document.getElementById('clearBtn').disabled = true;
+                }
+            };
+
+            actions.appendChild(delBtn);
+            item.appendChild(img);
+            item.appendChild(actions);
+            grid.appendChild(item);
+        });
+    }
+
+    function updateCount() {
+        document.getElementById('count').textContent = scans.length;
+    }
+
+    function showModal(url) {
+        document.getElementById('modalImg').src = url;
+        document.getElementById('modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modal').classList.remove('active');
+    }
+
+    async function saveAll() {
+        const zip = new JSZip();
+        const date = new Date().toISOString().split('T')[0];
+
+        scans.forEach((url, i) => {
+            const base64 = url.split(',')[1];
+            zip.file(`scan_${i+1}.jpg`, base64, {base64: true});
+        });
+
+        const blob = await zip.generateAsync({type: 'blob'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `scans_${date}.zip`;
+        link.click();
+
+        showMessage('一括保存しました', 'success');
+    }
+
+    async function exportPDF() {
+        const {jsPDF} = window.jspdf;
+        const pdf = new jsPDF();
+
+        for (let i = 0; i < scans.length; i++) {
+            if (i > 0) pdf.addPage();
+
+            const img = new Image();
+            img.src = scans[i];
+
+            await new Promise(resolve => {
+                img.onload = () => {
+                    const w = pdf.internal.pageSize.getWidth();
+                    const h = pdf.internal.pageSize.getHeight();
+                    const ratio = img.width / img.height;
+                    const pageRatio = w / h;
+
+                    let fw, fh;
+                    if (ratio > pageRatio) {
+                        fw = w - 20;
+                        fh = fw / ratio;
+                    } else {
+                        fh = h - 20;
+                        fw = fh * ratio;
+                    }
+
+                    const x = (w - fw) / 2;
+                    const y = (h - fh) / 2;
+
+                    pdf.addImage(scans[i], 'JPEG', x, y, fw, fh);
+                    resolve();
+                };
+            });
+        }
+
+        const date = new Date().toISOString().split('T')[0];
+        pdf.save(`scan_${date}.pdf`);
+        showMessage('PDFを出力しました', 'success');
+    }
+
+    function clearAll() {
+        if (confirm('すべて削除しますか？')) {
+            scans = [];
+            updateGrid();
+            updateCount();
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('pdfBtn').disabled = true;
+            document.getElementById('clearBtn').disabled = true;
+            showMessage('すべて削除しました', 'success');
+        }
+    }
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.className = `message ${type}`;
+        msg.textContent = text;
+        setTimeout(() => msg.textContent = '', 3000);
+    }
+
+    document.getElementById('modal').addEventListener('click', (e) => {
+        if (e.target.id === 'modal') closeModal();
+    });
+</script>
+```
+
+</body>
+</html>
