@@ -315,6 +315,106 @@
         font-size: 24px;
         cursor: pointer;
     }
+
+    .edit-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 2000;
+        padding: 12px;
+    }
+
+    .edit-modal.active {
+        display: block;
+    }
+
+    .edit-container {
+        width: 100%;
+        height: 100%;
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .edit-header h2 {
+        font-size: 20px;
+        color: #000;
+    }
+
+    .edit-canvas-box {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        min-height: 300px;
+    }
+
+    #editCanvas {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        touch-action: none;
+    }
+
+    .edit-tools {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tool-row {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tool-row::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tool-btn {
+        padding: 12px 16px;
+        background: #e8e8e8;
+        color: #000;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .tool-btn:active {
+        background: #d0d0d0;
+    }
+
+    .tool-btn.active {
+        background: #007aff;
+        color: white;
+    }
+
+    .tool-btn:disabled {
+        opacity: 0.4;
+    }
 </style>
 ```
 
@@ -389,6 +489,39 @@
 <div id="modal" class="modal">
     <button class="close-modal" onclick="closeModal()">×</button>
     <img id="modalImg" src="" alt="Preview">
+</div>
+
+<div id="editModal" class="edit-modal">
+    <div class="edit-container">
+        <div class="edit-header">
+            <h2>✏️ 編集</h2>
+            <button class="close-modal" onclick="closeEditModal()">×</button>
+        </div>
+        
+        <div class="edit-canvas-box">
+            <canvas id="editCanvas"></canvas>
+        </div>
+
+        <div class="edit-tools">
+            <div class="tool-row">
+                <button class="tool-btn" id="undoBtn" onclick="undo()" disabled>↶ 戻る</button>
+                <button class="tool-btn" id="redoBtn" onclick="redo()" disabled>↷ 進む</button>
+                <button class="tool-btn" id="cropBtn" onclick="toggleCrop()">✂️ トリミング</button>
+                <button class="tool-btn" onclick="rotate(90)">↻ 右回転</button>
+                <button class="tool-btn" onclick="rotate(-90)">↺ 左回転</button>
+            </div>
+            <div class="tool-row">
+                <button class="tool-btn" onclick="filter('grayscale')">⬛ グレー</button>
+                <button class="tool-btn" onclick="filter('blackwhite')">◼️ 白黒</button>
+                <button class="tool-btn" onclick="filter('sepia')">🟤 セピア</button>
+                <button class="tool-btn" onclick="filter('invert')">🔄 反転</button>
+                <button class="tool-btn" onclick="resetEdit()">🔄 リセット</button>
+            </div>
+            <div class="tool-row">
+                <button class="btn-success" style="flex: 1;" onclick="saveEdit()">💾 保存</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -562,6 +695,14 @@
             const actions = document.createElement('div');
             actions.className = 'scan-actions';
 
+            const editBtn = document.createElement('button');
+            editBtn.className = 'action-btn';
+            editBtn.innerHTML = '✏️';
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                openEditModal(i);
+            };
+
             const delBtn = document.createElement('button');
             delBtn.className = 'action-btn';
             delBtn.innerHTML = '×';
@@ -577,6 +718,7 @@
                 }
             };
 
+            actions.appendChild(editBtn);
             actions.appendChild(delBtn);
             item.appendChild(img);
             item.appendChild(actions);
@@ -677,6 +819,241 @@
     document.getElementById('modal').addEventListener('click', (e) => {
         if (e.target.id === 'modal') closeModal();
     });
+
+    // Edit functionality
+    let editCanvas, editCtx;
+    let currentEditIndex = -1;
+    let editHistory = [];
+    let historyIndex = -1;
+    let cropMode = false;
+    let cropStart = null;
+    let cropEnd = null;
+
+    function openEditModal(index) {
+        currentEditIndex = index;
+        editHistory = [];
+        historyIndex = -1;
+        
+        editCanvas = document.getElementById('editCanvas');
+        editCtx = editCanvas.getContext('2d');
+
+        const img = new Image();
+        img.onload = () => {
+            editCanvas.width = img.width;
+            editCanvas.height = img.height;
+            editCtx.drawImage(img, 0, 0);
+            saveHistory();
+            document.getElementById('editModal').classList.add('active');
+        };
+        img.src = scans[index];
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+        cropMode = false;
+        document.getElementById('cropBtn').classList.remove('active');
+    }
+
+    function saveHistory() {
+        const data = editCtx.getImageData(0, 0, editCanvas.width, editCanvas.height);
+        editHistory = editHistory.slice(0, historyIndex + 1);
+        editHistory.push({
+            data: data,
+            width: editCanvas.width,
+            height: editCanvas.height
+        });
+        historyIndex++;
+        if (editHistory.length > 20) {
+            editHistory.shift();
+            historyIndex--;
+        }
+        updateUndoRedo();
+    }
+
+    function updateUndoRedo() {
+        document.getElementById('undoBtn').disabled = historyIndex <= 0;
+        document.getElementById('redoBtn').disabled = historyIndex >= editHistory.length - 1;
+    }
+
+    function undo() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            const state = editHistory[historyIndex];
+            editCanvas.width = state.width;
+            editCanvas.height = state.height;
+            editCtx.putImageData(state.data, 0, 0);
+            updateUndoRedo();
+        }
+    }
+
+    function redo() {
+        if (historyIndex < editHistory.length - 1) {
+            historyIndex++;
+            const state = editHistory[historyIndex];
+            editCanvas.width = state.width;
+            editCanvas.height = state.height;
+            editCtx.putImageData(state.data, 0, 0);
+            updateUndoRedo();
+        }
+    }
+
+    function toggleCrop() {
+        cropMode = !cropMode;
+        const btn = document.getElementById('cropBtn');
+        if (cropMode) {
+            btn.classList.add('active');
+            editCanvas.style.cursor = 'crosshair';
+        } else {
+            btn.classList.remove('active');
+            editCanvas.style.cursor = 'default';
+        }
+    }
+
+    editCanvas?.addEventListener('mousedown', startCrop);
+    editCanvas?.addEventListener('mousemove', drawCrop);
+    editCanvas?.addEventListener('mouseup', endCrop);
+    editCanvas?.addEventListener('touchstart', (e) => startCrop(e.touches[0]));
+    editCanvas?.addEventListener('touchmove', (e) => { e.preventDefault(); drawCrop(e.touches[0]); });
+    editCanvas?.addEventListener('touchend', endCrop);
+
+    function startCrop(e) {
+        if (!cropMode) return;
+        const rect = editCanvas.getBoundingClientRect();
+        cropStart = {
+            x: (e.clientX - rect.left) * (editCanvas.width / rect.width),
+            y: (e.clientY - rect.top) * (editCanvas.height / rect.height)
+        };
+    }
+
+    function drawCrop(e) {
+        if (!cropMode || !cropStart) return;
+        const rect = editCanvas.getBoundingClientRect();
+        cropEnd = {
+            x: (e.clientX - rect.left) * (editCanvas.width / rect.width),
+            y: (e.clientY - rect.top) * (editCanvas.height / rect.height)
+        };
+
+        const state = editHistory[historyIndex];
+        editCtx.putImageData(state.data, 0, 0);
+
+        const x = Math.min(cropStart.x, cropEnd.x);
+        const y = Math.min(cropStart.y, cropEnd.y);
+        const w = Math.abs(cropEnd.x - cropStart.x);
+        const h = Math.abs(cropEnd.y - cropStart.y);
+
+        editCtx.strokeStyle = '#007aff';
+        editCtx.lineWidth = 2;
+        editCtx.setLineDash([5, 5]);
+        editCtx.strokeRect(x, y, w, h);
+        editCtx.setLineDash([]);
+    }
+
+    function endCrop() {
+        if (!cropMode || !cropStart || !cropEnd) return;
+        
+        const x = Math.min(cropStart.x, cropEnd.x);
+        const y = Math.min(cropStart.y, cropEnd.y);
+        const w = Math.abs(cropEnd.x - cropStart.x);
+        const h = Math.abs(cropEnd.y - cropStart.y);
+
+        if (w < 10 || h < 10) {
+            cropStart = null;
+            cropEnd = null;
+            return;
+        }
+
+        const cropped = editCtx.getImageData(x, y, w, h);
+        editCanvas.width = w;
+        editCanvas.height = h;
+        editCtx.putImageData(cropped, 0, 0);
+        saveHistory();
+
+        cropStart = null;
+        cropEnd = null;
+        cropMode = false;
+        document.getElementById('cropBtn').classList.remove('active');
+    }
+
+    function rotate(deg) {
+        const temp = document.createElement('canvas');
+        const tempCtx = temp.getContext('2d');
+
+        if (Math.abs(deg) === 90) {
+            temp.width = editCanvas.height;
+            temp.height = editCanvas.width;
+        } else {
+            temp.width = editCanvas.width;
+            temp.height = editCanvas.height;
+        }
+
+        tempCtx.translate(temp.width / 2, temp.height / 2);
+        tempCtx.rotate((deg * Math.PI) / 180);
+        tempCtx.drawImage(editCanvas, -editCanvas.width / 2, -editCanvas.height / 2);
+
+        editCanvas.width = temp.width;
+        editCanvas.height = temp.height;
+        editCtx.drawImage(temp, 0, 0);
+        saveHistory();
+    }
+
+    function filter(type) {
+        const imageData = editCtx.getImageData(0, 0, editCanvas.width, editCanvas.height);
+        const data = imageData.data;
+
+        switch(type) {
+            case 'grayscale':
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+                    data[i] = data[i+1] = data[i+2] = gray;
+                }
+                break;
+            case 'blackwhite':
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+                    const bw = gray > 128 ? 255 : 0;
+                    data[i] = data[i+1] = data[i+2] = bw;
+                }
+                break;
+            case 'sepia':
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i], g = data[i+1], b = data[i+2];
+                    data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+                    data[i+1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+                    data[i+2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
+                }
+                break;
+            case 'invert':
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = 255 - data[i];
+                    data[i+1] = 255 - data[i+1];
+                    data[i+2] = 255 - data[i+2];
+                }
+                break;
+        }
+
+        editCtx.putImageData(imageData, 0, 0);
+        saveHistory();
+    }
+
+    function resetEdit() {
+        const img = new Image();
+        img.onload = () => {
+            editCanvas.width = img.width;
+            editCanvas.height = img.height;
+            editCtx.drawImage(img, 0, 0);
+            editHistory = [];
+            historyIndex = -1;
+            saveHistory();
+        };
+        img.src = scans[currentEditIndex];
+    }
+
+    function saveEdit() {
+        scans[currentEditIndex] = editCanvas.toDataURL('image/jpeg', 0.9);
+        updateGrid();
+        closeEditModal();
+        showMessage('編集を保存しました', 'success');
+    }
 </script>
 ```
 
